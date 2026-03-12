@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Muzisyen.NET</title>
+
+  <style>
+    /* =============================================
+       GENEL AYARLAR & DEĞİŞKENLER
+       İleride renk/font değiştirmek için buraya bak
+    ============================================= */
+    :root {
+      --renk-ana: #1a1a2e;
+      --renk-vurgu: #e94560;
+      --renk-vurgu-acik: #ff6b6b;
+      --renk-arka: #f8f9fa;
+      --renk-kart: #ffffff;
+      --renk-yazi: #2d2d2d;
+      --renk-yazi-soluk: #888;
+      --renk-sinir: #e8e8e8;
+      --nav-yukseklik: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
+      background: var(--renk-arka);
+      color: var(--renk-yazi);
+    }
+
+    /* =============================================
+       SPLASH EKRANI
+       Logo ve yükleniyor animasyonu
+    ============================================= */
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: var(--renk-ana);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    #splash.gizle {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .splash-logo {
+      width: 90px;
+      height: 90px;
+      background: var(--renk-vurgu);
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 60px rgba(233, 69, 96, 0.4);
+      animation: splashPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .splash-logo svg {
+      width: 48px;
+      height: 48px;
+      fill: white;
+    }
+
+    .splash-baslik {
+      color: white;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    .splash-altyazi {
+      color: rgba(255,255,255,0.45);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    .splash-yukleniyor {
+      margin-top: 48px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .splash-nokta {
+      width: 7px;
+      height: 7px;
+      background: var(--renk-vurgu);
+      border-radius: 50%;
+      animation: noktaBounce 1.2s infinite ease-in-out;
+    }
+
+    .splash-nokta:nth-child(2) { animation-delay: 0.2s; }
+    .splash-nokta:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes splashPop {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    @keyframes noktaBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40%           { transform: scale(1.1); opacity: 1;   }
+    }
+
+    /* =============================================
+       OFFLİNE EKRANI
+       İnternet olmadığında gösterilir
+    ============================================= */
+    #offline {
+      position: fixed;
+      inset: 0;
+      background: var(--renk-arka);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 8888;
+      padding: 40px;
+      text-align: center;
+    }
+
+    #offline.goster {
+      display: flex;
+    }
+
+    .offline-ikon {
+      width: 80px;
+      height: 80px;
+      background: #f0f0f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 36px;
+    }
+
+    .offline-baslik {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--renk-yazi);
+    }
+
+    .offline-metin {
+      font-size: 15px;
+      color: var(--renk-yazi-soluk);
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .offline-buton {
+      background: var(--renk-vurgu);
+      color: white;
+      border: none;
+      padding: 14px 36px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
+    }
+
+    .offline-buton:active {
+      transform: scale(0.96);
+      box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+    }
+
+    /* =============================================
+       ANA KONTEYNER
+       WebView ve nav bar için sarmalayıcı
+    ============================================= */
+    #uygulama {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-top);
+    }
+
+    /* =============================================
+       ÜST BAR
+       Geri butonu ve başlık
+    ============================================= */
+    #ust-bar {
+      height: 50px;
+      background: var(--renk-kart);
+      border-bottom: 1px solid var(--renk-sinir);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+    }
+
+    .ust-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--renk-vurgu);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ust-logo svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+    }
+
+    .ust-baslik {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--renk-yazi);
+      flex: 1;
+    }
+
+    .ust-geri {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: #f0f0f0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .ust-geri:active { background: #e0e0e0; }
+
+    .ust-geri svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--renk-yazi);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* =============================================
+       PULL-TO-REFRESH
+       Aşağı çekince tetiklenir
+    ============================================= */
+    #ptr-gostergesi {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-60px);
+      width: 40px;
+      height: 40px;
+      background: var(--renk-kart);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    #ptr-gostergesi.aktif {
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    .ptr-ok {
+      width: 20px;
+      height: 20px;
+      stroke: var(--renk-vurgu);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.3s;
+    }
+
+    .ptr-ok.donuyor {
+      animation: donSpin 0.8s linear infinite;
+    }
+
+    @keyframes donSpin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* =============================================
+       WEBVIEW (iframe)
+       Sitenin gösterildiği alan
+    ============================================= */
+    #webview-konteyner {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #webview {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--renk-arka);
+    }
+
+    /* =============================================
+       ALT NAVİGASYON BARI
+       4 sekme — ileride sekme eklemek için
+       navSekmeleri dizisine yeni obje ekle
+    ============================================= */
+    #alt-nav {
+      height: calc(var(--nav-yukseklik) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--renk-kart);
+      border-top: 1px solid var(--renk-sinir);
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    }
+
+    .nav-sekme {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 8px 4px;
+      position: relative;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-sekme:active {
+      background: rgba(233, 69, 96, 0.06);
+    }
+
+    .nav-ikon {
+      width: 24px;
+      height: 24px;
+      stroke: var(--renk-yazi-soluk);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s, transform 0.2s;
+    }
+
+    .nav-etiket {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--renk-yazi-soluk);
+      transition: color 0.2s;
+    }
+
+    /* Aktif sekme stili */
+    .nav-sekme.aktif .nav-ikon {
+      stroke: var(--renk-vurgu);
+      transform: scale(1.1);
+    }
+
+    .nav-sekme.aktif .nav-etiket {
+      color: var(--renk-vurgu);
+      font-weight: 700;
+    }
+
+    /* Aktif sekme üst çizgisi */
+    .nav-sekme.aktif::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 2.5px;
+      background: var(--renk-vurgu);
+      border-radius: 0 0 3px 3px;
+    }
+
+    /* =============================================
+       YÜKLEME ÇUBUĞU
+       Sayfa değişimlerinde üstte görünür
+    ============================================= */
+    #yukleme-cubugu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--renk-vurgu), var(--renk-vurgu-acik));
+      z-index: 200;
+      transition: width 0.3s ease, opacity 0.3s;
+      border-radius: 0 2px 2px 0;
+    }
+
+    #yukleme-cubugu.gizle {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== SPLASH EKRANI ========== -->
+  <div id="splash">
+    <div class="splash-logo">
+      <!-- Nota ikonu — ileride kendi logonla değiştirebilirsin -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zm12-2c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/>
+      </svg>
+    </div>
+    <div class="splash-baslik">Muzisyen.NET</div>
+    <div class="splash-altyazi">Türkiye'nin Müzisyen Forumu</div>
+    <div class="splash-yukleniyor">
+      <div class="splash-nokta"></div>
+      <div class="splash-nokta"></div>
+      <div class="splash-nokta"></div>
+    </div>
+  </div>
+
+  <!-- ========== OFFLİNE EKRANI ========== -->
+  <div id="offline">
+    <div class="offline-ikon">📡</div>
+    <div class="offline-baslik">Bağlantı Yok</div>
+    <div class="offline-metin">
+      İnternet bağlantın yok gibi görünüyor.<br>
+      Bağlantını kontrol edip tekrar dene.
+    </div>
+    <button class="offline-buton" ontouchend="yenidenDene()" onclick="yenidenDene()">
+      Tekrar Dene
+    </button>
+  </div>
+
+  <!-- ========== ANA UYGULAMA ========== -->
+  <div id="uygulama">
+
+    <!-- Üst Bar -->
+    <div id="ust-bar">
+      <div class="ust-logo">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3zm12-2c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3 3 1.343 3 3z"/></svg>
+      </div>
+      <span class="ust-baslik">Muzisyen.NET</span>
+      <button class="ust-geri" ontouchend="geriBas()" onclick="geriBas()" title="Geri">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Pull-to-Refresh göstergesi -->
+    <div id="ptr-gostergesi">
+      <svg class="ptr-ok" id="ptr-ok" viewBox="0 0 24 24">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+      </svg>
+    </div>
+
+    <!-- WebView alanı -->
+    <div id="webview-konteyner">
+      <div id="yukleme-cubugu"></div>
+      <iframe
+        id="webview"
+        src="https://www.muzisyen.net"
+        allowfullscreen
+        allow="geolocation; microphone; camera"
+      ></iframe>
+    </div>
+
+    <!-- Alt Navigasyon -->
+    <nav id="alt-nav"></nav>
+
+  </div>
+
+  <script>
+    /* =============================================
+       NAV SEKMELERİ TANIMI
+       Yeni sekme eklemek için buraya yeni obje ekle:
+       { etiket, url, ikon (SVG path) }
+    ============================================= */
+    const navSekmeleri = [
+      {
+        etiket: 'Ana Sayfa',
+        url: 'https://www.muzisyen.net',
+        ikon: `<polyline points="3 9 12 2 21 9"/><rect x="9" y="11" width="6" height="10"/><path d="M3 9v11a1 1 0 0 0 1 1h5v-7h4v7h5a1 1 0 0 0 1-1V9"/>`
+      },
+      {
+        etiket: 'Keşfet',
+        url: 'https://www.muzisyen.net/kesfet/',
+        ikon: `<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>`
+      },
+      {
+        etiket: 'İlanlar',
+        url: 'https://www.muzisyen.net/forumlar/muzisyen-grup-solist-arayanlar.23/',
+        ikon: `<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>`
+      },
+      {
+        etiket: 'Profil',
+        url: 'https://www.muzisyen.net/account/',
+        ikon: `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`
+      }
+    ];
+
+    /* =============================================
+       DEĞİŞKENLER
+    ============================================= */
+    const webview   = document.getElementById('webview');
+    const altNav    = document.getElementById('alt-nav');
+    const splash    = document.getElementById('splash');
+    const offline   = document.getElementById('offline');
+    const yuklCubuk = document.getElementById('yukleme-cubugu');
+    const ptrGoster = document.getElementById('ptr-gostergesi');
+    const ptrOk     = document.getElementById('ptr-ok');
+
+    let aktifSekme  = 0;
+    let yuklemeTimer;
+
+    // Pull-to-refresh değişkenleri
+    let dokunmaBaslangic = 0;
+    let ptr_aktif        = false;
+
+    /* =============================================
+       NAV BAR OLUŞTUR
+    ============================================= */
+    navSekmeleri.forEach((sekme, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'nav-sekme' + (index === 0 ? ' aktif' : '');
+      btn.innerHTML = `
+        <svg class="nav-ikon" viewBox="0 0 24 24">${sekme.ikon}</svg>
+        <span class="nav-etiket">${sekme.etiket}</span>
+      `;
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        sekmeyiTikla(index);
+      });
+      btn.addEventListener('click', () => sekmeyiTikla(index));
+      altNav.appendChild(btn);
+    });
+
+    /* =============================================
+       SEKME DEĞİŞTİR
+    ============================================= */
+    function sekmeyiTikla(index) {
+      if (aktifSekme === index) return;
+      aktifSekme = index;
+
+      // Aktif stili güncelle
+      document.querySelectorAll('.nav-sekme').forEach((el, i) => {
+        el.classList.toggle('aktif', i === index);
+      });
+
+      // Sayfayı yükle
+      sayfaYukle(navSekmeleri[index].url);
+    }
+
+    /* =============================================
+       SAYFA YÜKLE
+    ============================================= */
+    function sayfaYukle(url) {
+      yuklemeBaslat();
+      webview.src = url;
+    }
+
+    /* =============================================
+       YÜKLEME ÇUBUĞU
+    ============================================= */
+    function yuklemeBaslat() {
+      clearTimeout(yuklemeTimer);
+      yuklCubuk.style.width = '0%';
+      yuklCubuk.style.opacity = '1';
+      yuklCubuk.classList.remove('gizle');
+
+      let ilerleme = 0;
+      yuklemeTimer = setInterval(() => {
+        ilerleme += Math.random() * 15;
+        if (ilerleme > 85) ilerleme = 85;
+        yuklCubuk.style.width = ilerleme + '%';
+      }, 200);
+    }
+
+    function yuklemeBitti() {
+      clearInterval(yuklemeTimer);
+      yuklCubuk.style.width = '100%';
+      setTimeout(() => {
+        yuklCubuk.classList.add('gizle');
+        setTimeout(() => yuklCubuk.style.width = '0%', 300);
+      }, 300);
+    }
+
+    webview.addEventListener('load', yuklemeBitti);
+
+    /* =============================================
+       GERİ BUTONU
+    ============================================= */
+    function geriBas() {
+      try {
+        // Capacitor'da native geri, webde iframe history
+        webview.contentWindow.history.back();
+      } catch(e) {
+        webview.src = navSekmeleri[aktifSekme].url;
+      }
+    }
+
+    /* =============================================
+       PULL-TO-REFRESH
+       Yukarıdan aşağı çekince sayfayı yeniler
+    ============================================= */
+    const webviewKonteyner = document.getElementById('webview-konteyner');
+
+    webviewKonteyner.addEventListener('touchstart', (e) => {
+      dokunmaBaslangic = e.touches[0].clientY;
+    }, { passive: true });
+
+    webviewKonteyner.addEventListener('touchmove', (e) => {
+      const mesafe = e.touches[0].clientY - dokunmaBaslangic;
+      if (mesafe > 60 && !ptr_aktif) {
+        ptr_aktif = true;
+        ptrGoster.classList.add('aktif');
+      }
+    }, { passive: true });
+
+    webviewKonteyner.addEventListener('touchend', () => {
+      if (ptr_aktif) {
+        ptr_aktif = false;
+        ptrOk.classList.add('donuyor');
+        setTimeout(() => {
+          webview.src = webview.src;
+          ptrGoster.classList.remove('aktif');
+          ptrOk.classList.remove('donuyor');
+        }, 800);
+      }
+    });
+
+    /* =============================================
+       OFFLİNE / ONLİNE TAKİP
+    ============================================= */
+    function baglantiKontrol() {
+      if (!navigator.onLine) {
+        offline.classList.add('goster');
+      } else {
+        offline.classList.remove('goster');
+      }
+    }
+
+    function yenidenDene() {
+      if (navigator.onLine) {
+        offline.classList.remove('goster');
+        webview.src = webview.src;
+      }
+    }
+
+    window.addEventListener('online',  baglantiKontrol);
+    window.addEventListener('offline', baglantiKontrol);
+
+    /* =============================================
+       SPLASH EKRANI GİZLE
+       Sayfa ilk yüklenince 2 saniye splash göster
+    ============================================= */
+    webview.addEventListener('load', function splashGizle() {
+      setTimeout(() => {
+        splash.classList.add('gizle');
+      }, 1800);
+      webview.removeEventListener('load', splashGizle);
+    });
+
+    // Yedek: webview yüklenmese bile splashi kaldır
+    setTimeout(() => splash.classList.add('gizle'), 4000);
+
+    /* =============================================
+       CAPACITOR HAZIRLIĞI
+       İleride Capacitor entegrasyonu için
+       Bu bölüme push notification, kamera vb. eklenecek
+    ============================================= */
+    document.addEventListener('deviceready', () => {
+      console.log('Capacitor hazır');
+      // TODO: Push notification kaydı buraya
+      // TODO: Status bar rengi buraya
+    });
+
+  </script>
+</body>
+</html>
